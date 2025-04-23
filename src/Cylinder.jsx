@@ -26,7 +26,7 @@ export default function Cylinder() {
     })
 
     const geometry = useMemo(() => {
-      return new THREE.CylinderGeometry(1.7,1.7,2.05,64,64)
+      return new THREE.SphereGeometry(2,64,64)
     }, [])
   
     return (
