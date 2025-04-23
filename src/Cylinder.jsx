@@ -32,7 +32,7 @@ export default function Cylinder() {
     return (
     <mesh ref={meshRef} geometry={geometry}>
     <meshPhysicalMaterial
-      color="#AAAAAA"
+      color="#BBBBBB"
       roughness={0}
       metalness={0}
       transmission={1}        // Mayor transparencia

@@ -11,7 +11,7 @@ export default function Scene() {
     const elapsed = clock.getElapsedTime()
     if (groupRef.current) {
       //groupRef.current.rotation.y = elapsed * 0.2
-      //groupRef.current.rotation.x = elapsed * 0.2
+      groupRef.current.rotation.x = elapsed * 0.2
     }
   })
 

@@ -8,173 +8,72 @@ import { ParametricGeometry } from 'three/examples/jsm/geometries/ParametricGeom
 import fragmentShader from './shaders/fragment.glsl'
 import vertexShader from './shaders/vertex.glsl'
 
-function mobius(u, t, target) {
-  // u ∈ [0, 1], t ∈ [0, 1]
-  u *= Math.PI * 2.00
-  t = (t - 0.5) * 2// rango [-1, 1]
+const defaultPalette = [
+  "#1f77b4", // azul
+  "#ff7f0e", // naranja
+  "#2ca02c", // verde
+  "#d62728", // rojo
+  "#9467bd", // púrpura
+  "#8c564b", // marrón
+  "#e377c2", // rosa
+  "#7f7f7f", // gris
+  "#bcbd22", // oliva
+  "#17becf"  // cian
+];
 
-  const major = 1.0*t
-  const a = 0.5
+export default function ParticulasShader({ palette = defaultPalette }) {
+  const shaderRef = useRef()
+  const numPoints = 1000000
 
-  const x = Math.cos(u) * (major + t * Math.cos(u / 2))
-  const y = Math.sin(u) * (major + t * Math.cos(u / 2))
-  const z = t * Math.sin(u / 2)
+  const geometry = useMemo(() => {
+    const positions = new Float32Array(numPoints * 3)
+    const colors = new Float32Array(numPoints * 3)
 
-  target.set(x, y, z)
-}
+    for (let i = 0; i < numPoints; i++) {
+      positions[i * 3] = (Math.random() - 0.5) * 100
+      positions[i * 3 + 1] = (Math.random() - 0.5) * 100
+      positions[i * 3 + 2] = (Math.random() - 0.5) * 100
 
-function espacioTiempo(u, t, target) {
-  u *= Math.PI * 2.0
-  t = (t - 0.5) * 2.0 // t ∈ [-1, 1]
+      //const color = new THREE.Color(palette[Math.floor(Math.random() * palette.length)])
+      const color = new THREE.Color("#FF0000")
+      colors[i * 3] = color.r
+      colors[i * 3 + 1] = color.g
+      colors[i * 3 + 2] = color.b
+    }
 
-  const baseRadius = 0.2
-  const coneSlope = 1.5
-  const t0 = 0.15 // mitad del tubo
+    const geo = new THREE.BufferGeometry()
+    geo.setAttribute('position', new THREE.BufferAttribute(positions, 3))
+    geo.setAttribute('aColor', new THREE.BufferAttribute(colors, 3))
+    return geo
+  }, [numPoints, palette])
 
-  // Transición suave con una curva de tipo sigmoide
-  const smooth = Math.abs(t)
-  const blend = smoothstep(t0, 1.0, smooth) // 0 cerca de centro, 1 fuera
-  const r = baseRadius + coneSlope * (smooth - t0) * blend * (smooth > t0 ? 1.0 : 0.0)
+  useFrame(({ clock }) => {
+    if (shaderRef.current) {
+      shaderRef.current.uniforms.uTime.value = clock.getElapsedTime()
+    }
+  })
 
-  const x = (baseRadius + r) * Math.cos(u)
-  const y = (baseRadius + r) * Math.sin(u)
-  const z = t
+  const material = useMemo(() => new THREE.ShaderMaterial({
+    vertexShader,
+    fragmentShader,
+    uniforms: {
+      uTime: { value: 0.0 },
+      pointSize: { value: 0.5},
+      uA: { value: 2 },
+      uB: { value: -1.4 },
+      uC: { value: 2 },
+      uD: { value: 1.2 },
+      uE: { value: 2},
+      uF: { value: 2 },
+    },
+    vertexColors: true,
+    transparent: true,
+    depthWrite: false,
+  }), [])
 
-  target.set(x, y, z)
-}
-
-// Utilidad para smoothstep
-function smoothstep(edge0, edge1, x) {
-  const t = Math.min(Math.max((x - edge0) / (edge1 - edge0), 0.0), 1.0)
-  return t * t * (3.0 - 2.0 * t)
-}
-
-
-
-function dobleCono(u, t, target) {
-  // u ∈ [0, 1], t ∈ [0, 1]
-  u *= Math.PI * 2.0
-  t = (t - 0.5) * 4 // t en [-1, 1]
-
-  const radius = Math.abs(t) // radio crece a medida que te alejas del centro
-
-  const x = radius * Math.cos(u)
-  const y = radius * Math.sin(u)
-  const z = t
-
-  target.set(x, y, z)
-}
-
-function copaVino(u, t, target) {
-  u *= Math.PI * 2.0
-  t = (t - 0.5) * 2.4 // Ahora t ∈ [-1.2, 1.2] más o menos
-
-  let r;
-  if (t < -1.0) {
-    // 🔵 Base plana (disco)
-    r = 0.5
-  } else if (t < -0.6) {
-    // 🟣 Tallito
-    r = 0.05
-  } else if (t < 0.0) {
-    // 🔶 Transición
-    r = 0.05 + (t + 0.6) * 0.3
-  } else {
-    // 🔷 Cáliz
-    r = 0.2 + Math.pow(t, 2) * 0.5
-  }
-
-  const x = r * Math.cos(u)
-  const y = r * Math.sin(u)
-  const z = t
-
-  target.set(x, y, z)
-}
-
-
-
-export default function SphereWithShader() {
-
-  // const meshRef = useRef()
-  // const shaderRef = useRef();
-
-  // useFrame(({ clock }) => {
-  //   if (shaderRef.current) {
-  //     shaderRef.current.uniforms.uTime.value = clock.getElapsedTime()
-  //   }
-  // })
-
-    // // Rotación continua en Y usando el tiempo del reloj
-    // useFrame((state) => {
-    //   if (meshRef.current) {
-    //     meshRef.current.rotation.y = state.clock.getElapsedTime() * 0.5 
-    //     meshRef.current.rotation.x = state.clock.getElapsedTime() * 0.5 
-    //   }
-    //   if (shaderRef.current) {
-    //     shaderRef.current.uniforms.uTime.value = state.clock.getElapsedTime()
-    //   }
-    // })
-
-  function EspacioTiempo() {
-
-    const meshRef = useRef()
-    const shaderRef = useRef();
-  
-    useFrame((state) => {
-      if (meshRef.current) {
-        //meshRef.current.rotation.y = state.clock.getElapsedTime() * 0.1
-        // meshRef.current.rotation.x = state.clock.getElapsedTime() * 0.1 
-      }
-      if (shaderRef.current) {
-        shaderRef.current.uniforms.uTime.value = state.clock.getElapsedTime()
-      }
-    })
-
-    const geometry = useMemo(() => {
-      const geo = new ParametricGeometry(espacioTiempo, 200, 200)
-      geo.computeVertexNormals()
-      return geo
-    }, [])
-
-    return (
-      <mesh ref={meshRef} geometry={geometry}>
-        {/* <meshStandardMaterial color="orange" side={DoubleSide} /> */}
-        <shaderMaterial
-        ref={shaderRef}
-        vertexShader={vertexShader}
-        fragmentShader={fragmentShader}
-        uniforms={{
-          uTime: { value: 0 },
-          uLightDir: { value: new THREE.Vector3(10, 10, 10) },
-          uAmbientColor: { value: new THREE.Color(0.4, 0.4, 0.4) },
-          uAmbientIntensity: { value: 0.8 },
-          uDiffuseColor: { value: new THREE.Color(1.0, 1.0, 1.0) },
-          uSpecularColor: { value: new THREE.Color(1, 1, 1) },
-          uSpecularPower: { value: 64.0}
-        }}
-        side={DoubleSide}
-        transparent={false}
-        wireframe={false}
-        depthWrite={false}
-      />
-      </mesh>
-    )
-  }
-
-  return (EspacioTiempo())
-
-  // return (
-  //   <mesh position={[0,0,0]}>
-  //     <planeGeometry args={[20, 20,64, 64]} />
-  //     <shaderMaterial
-  //       ref={shaderRef}
-  //       vertexShader={vertexShader}
-  //       fragmentShader={fragmentShader}
-  //       uniforms={{
-  //         uTime: { value: 0 }
-  //       }}
-  //       side={DoubleSide}
-  //     />
-  //   </mesh>
-  // )
+  return (
+    <points geometry={geometry}>
+      <primitive object={material} attach="material" ref={shaderRef} />
+    </points>
+  )
 }
