@@ -18,9 +18,9 @@ root.render(
     >
       {/* Stage reemplaza ambientLight, directionalLight y Environment */}
       <Stage
-        environment="studio" // también puedes usar "warehouse", "sunset", etc.
+        environment="apartment" // también puedes usar "warehouse", "sunset", etc.
         intensity={1}
-        contactShadow={{ opacity: 0.4, blur: 2 }}
+        contactShadow={{ opacity: 0.4, blur: 0 }}
         adjustCamera={false} // lo dejas en false si estás usando tu propia cámara
       >
       <Scene />
